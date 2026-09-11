@@ -1,0 +1,6 @@
+{
+  "name": "Computer Repair Management System",
+  "description": "Enterprise Computer Repair Management & IT Asset Tracking System (ระบบบันทึกข้อมูลและประวัติการซ่อมเครื่อง Computer)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
