@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
   Search,
-  Plus,
   Filter,
   Download,
   Eye,
@@ -27,7 +26,7 @@ interface ComputerListViewProps {
   onSelectComputer: (computer: Computer) => void;
   onEditComputer: (computer: Computer) => void;
   onDeleteComputer: (computer: Computer) => void;
-  onAddNewComputer: () => void;
+  onAddNewComputer?: () => void;
   onNewRepairForPc: (computer: Computer) => void;
 }
 
@@ -156,13 +155,6 @@ export const ComputerListView: React.FC<ComputerListViewProps> = ({
           >
             <Download className="w-3.5 h-3.5" />
             <span>ส่งออก CSV (Export)</span>
-          </button>
-          <button
-            onClick={onAddNewComputer}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>เพิ่มเครื่องใหม่ (Add PC)</span>
           </button>
         </div>
       </div>

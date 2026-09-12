@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
   Search,
-  Plus,
   Filter,
   Download,
   Eye,
@@ -26,7 +25,7 @@ interface RepairListViewProps {
   technicians: User[];
   currentUser: User | null;
   onSelectRepair: (repair: Repair) => void;
-  onAddNewRepair: () => void;
+  onAddNewRepair?: () => void;
   onDeleteRepair: (repair: Repair) => void;
   onPrintRepair: (repair: Repair) => void;
   initialTab?: string;
@@ -160,13 +159,6 @@ export const RepairListView: React.FC<RepairListViewProps> = ({
           >
             <Download className="w-3.5 h-3.5" />
             <span>ส่งออก CSV</span>
-          </button>
-          <button
-            onClick={onAddNewRepair}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>แจ้งซ่อมใหม่ (New Ticket)</span>
           </button>
         </div>
       </div>
