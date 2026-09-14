@@ -873,6 +873,72 @@ class DataServiceManager {
       lowStockParts
     };
   }
+
+  // --- Neon PostgreSQL Integration Methods ---
+  public async checkNeonDatabaseStatus(): Promise<{ connected: boolean; provider?: string; message?: string; error?: string; version?: string }> {
+    try {
+      const res = await fetch('/api/database/status');
+      const data = await res.json();
+      return data;
+    } catch (e: any) {
+      return { connected: false, error: e.message || 'Cannot reach API server' };
+    }
+  }
+
+  public async initNeonTables(): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const res = await fetch('/api/database/init', { method: 'POST' });
+      return await res.json();
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Cannot reach API server' };
+    }
+  }
+
+  public async syncToNeon(): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      // First ensure tables exist
+      await this.initNeonTables();
+
+      const payload = {
+        departments: this.departments,
+        users: this.users,
+        computers: this.computers,
+        parts: this.parts,
+        repairs: this.repairs
+      };
+
+      const res = await fetch('/api/database/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return await res.json();
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Sync request failed' };
+    }
+  }
+
+  public async pullFromNeon(): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const res = await fetch('/api/database/pull');
+      const json = await res.json();
+      if (json.success && json.data) {
+        const { departments, users, computers, parts, repairs } = json.data;
+        if (Array.isArray(departments) && departments.length > 0) this.departments = departments;
+        if (Array.isArray(users) && users.length > 0) this.users = users;
+        if (Array.isArray(computers) && computers.length > 0) this.computers = computers;
+        if (Array.isArray(parts) && parts.length > 0) this.parts = parts;
+        if (Array.isArray(repairs) && repairs.length > 0) this.repairs = repairs;
+
+        this.notify();
+        return { success: true, message: 'ดึงข้อมูลล่าสุดจาก Neon PostgreSQL สำเร็จ' };
+      } else {
+        return { success: false, error: json.error || 'Failed to pull from Neon' };
+      }
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Pull request failed' };
+    }
+  }
 }
 
 export const dataService = new DataServiceManager();

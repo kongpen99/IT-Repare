@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Sliders, Database, RotateCcw, ShieldCheck, Download, CheckCircle2, HardDrive } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sliders, Database, RotateCcw, Download, RefreshCw, UploadCloud, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useToast } from '../ui/Toast';
+import { DataService } from '../../services/dataService';
 
 interface SystemSettingsProps {
   onResetData: () => void;
@@ -8,11 +9,66 @@ interface SystemSettingsProps {
 }
 
 export const SystemSettings: React.FC<SystemSettingsProps> = ({ onResetData, onExportAllJson }) => {
-  const { success } = useToast();
+  const { success, error, info } = useToast();
   const [orgName, setOrgName] = useState('บริษัท องค์กรตัวอย่าง จำกัด (มหาชน)');
   const [itEmail, setItEmail] = useState('itsupport@company.local');
   const [slaHours, setSlaHours] = useState('24');
   const [autoDeductStock, setAutoDeductStock] = useState(true);
+
+  // Neon DB state
+  const [neonStatus, setNeonStatus] = useState<{ connected: boolean; message?: string; version?: string } | null>(null);
+  const [isCheckingNeon, setIsCheckingNeon] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    checkStatus();
+  }, []);
+
+  const checkStatus = async () => {
+    setIsCheckingNeon(true);
+    try {
+      const status = await DataService.checkNeonDatabaseStatus();
+      setNeonStatus(status);
+    } catch {
+      setNeonStatus({ connected: false, message: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้' });
+    } finally {
+      setIsCheckingNeon(false);
+    }
+  };
+
+  const handleSyncToNeon = async () => {
+    setIsSyncing(true);
+    info('กำลังบันทึกและซิงค์ข้อมูลไปยัง Neon PostgreSQL...');
+    try {
+      const res = await DataService.syncToNeon();
+      if (res.success) {
+        success('ซิงค์ข้อมูลไปยัง Neon PostgreSQL สำเร็จ!');
+        checkStatus();
+      } else {
+        error(res.error || res.message || 'ซิงค์ข้อมูลไม่สำเร็จ');
+      }
+    } catch (e: any) {
+      error(e.message || 'เกิดข้อผิดพลาดในการซิงค์ข้อมูล');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handlePullFromNeon = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await DataService.pullFromNeon();
+      if (res.success) {
+        success(res.message || 'ดึงข้อมูลล่าสุดจาก Neon สำเร็จ!');
+      } else {
+        error(res.error || res.message || 'ดึงข้อมูลไม่สำเร็จ');
+      }
+    } catch (e: any) {
+      error(e.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleSavePreferences = (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,26 +158,69 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({ onResetData, onE
         {/* Database & Maintenance Box (1 col) */}
         <div className="space-y-4">
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-            <h3 className="font-heading font-bold text-sm text-slate-900 pb-2 border-b border-slate-100 flex items-center gap-2">
-              <Database className="w-4 h-4 text-indigo-600" />
-              <span>ฐานข้อมูลและการสำรอง</span>
-            </h3>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="font-heading font-bold text-sm text-slate-900 flex items-center gap-2">
+                <Database className="w-4 h-4 text-emerald-600" />
+                <span>ฐานข้อมูล Neon PostgreSQL</span>
+              </h3>
+              <button
+                onClick={checkStatus}
+                disabled={isCheckingNeon}
+                title="ตรวจสอบสถานะการเชื่อมต่อ"
+                className="p-1 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isCheckingNeon ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
 
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1 text-xs">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Database Engine:</span>
-                <span className="font-semibold font-mono text-slate-900">PostgreSQL / Prisma</span>
+                <span className="font-semibold font-mono text-emerald-700">Neon PostgreSQL (Serverless)</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Persistence:</span>
-                <span className="font-semibold text-emerald-600">Local Cache & Sync</span>
+                <span className="text-slate-500">สถานะการเชื่อมต่อ:</span>
+                {neonStatus?.connected ? (
+                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-600">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    เชื่อมต่อแล้ว
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 font-semibold text-amber-600">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    รอใส่ DATABASE_URL
+                  </span>
+                )}
               </div>
+              <p className="text-[11px] text-slate-500 pt-1 leading-relaxed border-t border-slate-200/60">
+                {neonStatus?.connected
+                  ? 'ระบบเชื่อมต่อ Neon Serverless PostgreSQL แล้ว ข้อมูลซิงค์ลงฐานข้อมูลจริงบน Cloud'
+                  : 'ใส่ DATABASE_URL ใน Settings / Environment เพื่อซิงค์ข้อมูลกับ Neon ทันที'}
+              </p>
             </div>
 
             <div className="space-y-2">
               <button
+                onClick={handleSyncToNeon}
+                disabled={isSyncing}
+                className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-xs"
+              >
+                <UploadCloud className="w-4 h-4" />
+                <span>{isSyncing ? 'กำลังประมวลผล...' : 'ซิงค์ข้อมูลไปยัง Neon PostgreSQL'}</span>
+              </button>
+
+              <button
+                onClick={handlePullFromNeon}
+                disabled={isSyncing}
+                className="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>ดึงข้อมูลล่าสุดจาก Neon (Pull)</span>
+              </button>
+
+              <button
                 onClick={onExportAllJson}
-                className="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-2.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors border border-slate-200"
               >
                 <Download className="w-4 h-4" />
                 <span>สำรองข้อมูลระบบทั้งหมด (JSON)</span>

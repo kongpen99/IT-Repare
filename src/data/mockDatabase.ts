@@ -1,4 +1,4 @@
-import { Department, User, Computer, Part, Repair } from '../types';
+import type { Department, User, Computer, Part, Repair } from '../types/index.ts';
 
 export const INITIAL_DEPARTMENTS: Department[] = [
   { id: 'dept-1', code: 'IT', name: 'ฝ่ายเทคโนโลยีสารสนเทศ (IT)', description: 'ดูแลระบบสารสนเทศและโครงข่ายคอมพิวเตอร์', createdAt: '2024-01-10T08:00:00Z', updatedAt: '2024-01-10T08:00:00Z' },
