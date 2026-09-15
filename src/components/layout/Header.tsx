@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   Bell,
@@ -10,9 +10,14 @@ import {
   Monitor,
   Package,
   Layers,
-  Sparkles
+  Sparkles,
+  Database,
+  CheckCircle2,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 import { User, Part, Repair } from '../../types';
+import { DataService, SyncStatus } from '../../services/dataService';
 
 interface HeaderProps {
   currentUser: User | null;
@@ -39,6 +44,24 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(DataService.getSyncStatus());
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
+
+  useEffect(() => {
+    const unsub = DataService.subscribe(() => {
+      setSyncStatus(DataService.getSyncStatus());
+    });
+    return unsub;
+  }, []);
+
+  const handleManualSync = async () => {
+    setIsManualSyncing(true);
+    try {
+      await DataService.syncToNeon(false);
+    } finally {
+      setIsManualSyncing(false);
+    }
+  };
 
   const totalNotifications = lowStockParts.length + urgentRepairs.length;
 
@@ -68,7 +91,46 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right: Actions, Notifications, User Profile */}
-        <div className="flex items-center gap-3 ml-4">
+        <div className="flex items-center gap-2.5 ml-4">
+          {/* Neon Database Live Status Badge */}
+          <button
+            onClick={handleManualSync}
+            disabled={syncStatus.status === 'syncing' || isManualSyncing}
+            title={
+              syncStatus.status === 'syncing' || isManualSyncing
+                ? 'กำลังซิงค์และบันทึกข้อมูลลงฐานข้อมูล Neon (computer-MG)...'
+                : syncStatus.status === 'error'
+                ? `เกิดข้อผิดพลาดในการซิงค์: ${syncStatus.error || 'คลิกเพื่อลองใหม่'}`
+                : `เชื่อมต่อ Neon (computer-MG) เรียบร้อย${syncStatus.lastSyncTime ? ` ล่าสุด: ${syncStatus.lastSyncTime}` : ''} (คลิกเพื่อบังคับซิงค์)`
+            }
+            className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+              syncStatus.status === 'syncing' || isManualSyncing
+                ? 'bg-blue-50 border-blue-200 text-blue-700'
+                : syncStatus.status === 'error'
+                ? 'bg-rose-50 border-rose-200 text-rose-700'
+                : 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-800'
+            }`}
+          >
+            <Database className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="font-semibold font-mono text-[11px]">computer-MG</span>
+            {syncStatus.status === 'syncing' || isManualSyncing ? (
+              <span className="inline-flex items-center gap-1 text-[11px] text-blue-600">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                กำลังซิงค์...
+              </span>
+            ) : syncStatus.status === 'error' ? (
+              <span className="inline-flex items-center gap-1 text-[11px] text-rose-600">
+                <AlertCircle className="w-3 h-3" />
+                ผิดพลาด
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600">
+                <CheckCircle2 className="w-3 h-3" />
+                ซิงค์แล้ว
+              </span>
+            )}
+          </button>
+
           {/* Quick Create Repair Button */}
           <button
             onClick={() => onNavigate('repairs', 'new')}

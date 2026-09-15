@@ -25,6 +25,13 @@ const STORAGE_KEY_PCS = 'crm_computers_v1';
 const STORAGE_KEY_PARTS = 'crm_parts_v1';
 const STORAGE_KEY_REPAIRS = 'crm_repairs_v1';
 const STORAGE_KEY_CURRENT_USER = 'crm_auth_session_v2';
+const STORAGE_KEY_DELETED_IDS = 'crm_deleted_ids_v1';
+
+export interface SyncStatus {
+  status: 'idle' | 'syncing' | 'synced' | 'error';
+  lastSyncTime?: string;
+  error?: string;
+}
 
 class DataServiceManager {
   private users: User[] = [];
@@ -34,6 +41,24 @@ class DataServiceManager {
   private repairs: Repair[] = [];
   private currentUser: User | null = null;
   private listeners: (() => void)[] = [];
+
+  // Track deleted IDs for real-time synchronization with Neon PostgreSQL
+  private deletedIds: {
+    computers: string[];
+    repairs: string[];
+    parts: string[];
+    departments: string[];
+    users: string[];
+  } = {
+    computers: [],
+    repairs: [],
+    parts: [],
+    departments: [],
+    users: []
+  };
+
+  private autoSyncTimer: any = null;
+  private syncStatus: SyncStatus = { status: 'idle' };
 
   constructor() {
     this.init();
@@ -55,6 +80,15 @@ class DataServiceManager {
 
       const storedRepairs = localStorage.getItem(STORAGE_KEY_REPAIRS);
       this.repairs = storedRepairs ? JSON.parse(storedRepairs) : INITIAL_REPAIRS;
+
+      const storedDeleted = localStorage.getItem(STORAGE_KEY_DELETED_IDS);
+      if (storedDeleted) {
+        try {
+          this.deletedIds = JSON.parse(storedDeleted);
+        } catch {
+          this.deletedIds = { computers: [], repairs: [], parts: [], departments: [], users: [] };
+        }
+      }
 
       // Clean up legacy auto-login key if present
       try {
@@ -86,6 +120,13 @@ class DataServiceManager {
       this.currentUser = null;
     }
     this.persist();
+
+    // Silently pull latest data from Neon PostgreSQL (computer-MG) on initialization
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        this.pullFromNeon(true);
+      }, 200);
+    }
   }
 
   public subscribe(listener: () => void) {
@@ -95,9 +136,25 @@ class DataServiceManager {
     };
   }
 
-  private notify() {
+  private notify(triggerAutoSync = true) {
     this.persist();
     this.listeners.forEach((l) => l());
+    if (triggerAutoSync && typeof window !== 'undefined') {
+      this.scheduleAutoSync();
+    }
+  }
+
+  public getSyncStatus(): SyncStatus {
+    return this.syncStatus;
+  }
+
+  private scheduleAutoSync(delayMs = 400) {
+    if (this.autoSyncTimer) {
+      clearTimeout(this.autoSyncTimer);
+    }
+    this.autoSyncTimer = setTimeout(() => {
+      this.syncToNeon(true);
+    }, delayMs);
   }
 
   private persist() {
@@ -107,6 +164,7 @@ class DataServiceManager {
       localStorage.setItem(STORAGE_KEY_PCS, JSON.stringify(this.computers));
       localStorage.setItem(STORAGE_KEY_PARTS, JSON.stringify(this.parts));
       localStorage.setItem(STORAGE_KEY_REPAIRS, JSON.stringify(this.repairs));
+      localStorage.setItem(STORAGE_KEY_DELETED_IDS, JSON.stringify(this.deletedIds));
       if (this.currentUser) {
         localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(this.currentUser));
       } else {
@@ -389,6 +447,9 @@ class DataServiceManager {
     });
 
     this.users = this.users.filter((u) => u.id !== id);
+    if (!this.deletedIds.users.includes(id)) {
+      this.deletedIds.users.push(id);
+    }
     this.notify();
     return true;
   }
@@ -429,6 +490,9 @@ class DataServiceManager {
     const hasPcs = this.computers.some((pc) => pc.departmentId === id);
     if (hasPcs) return false;
     this.departments = this.departments.filter((d) => d.id !== id);
+    if (!this.deletedIds.departments.includes(id)) {
+      this.deletedIds.departments.push(id);
+    }
     this.notify();
     return true;
   }
@@ -498,6 +562,9 @@ class DataServiceManager {
 
   public deleteComputer(id: string): boolean {
     this.computers = this.computers.filter((c) => c.id !== id);
+    if (!this.deletedIds.computers.includes(id)) {
+      this.deletedIds.computers.push(id);
+    }
     this.notify();
     return true;
   }
@@ -557,6 +624,9 @@ class DataServiceManager {
 
   public deletePart(id: string): boolean {
     this.parts = this.parts.filter((p) => p.id !== id);
+    if (!this.deletedIds.parts.includes(id)) {
+      this.deletedIds.parts.push(id);
+    }
     this.notify();
     return true;
   }
@@ -953,6 +1023,9 @@ class DataServiceManager {
 
   public deleteRepair(id: string): boolean {
     this.repairs = this.repairs.filter((r) => r.id !== id);
+    if (!this.deletedIds.repairs.includes(id)) {
+      this.deletedIds.repairs.push(id);
+    }
     this.notify();
     return true;
   }
@@ -1102,17 +1175,24 @@ class DataServiceManager {
     }
   }
 
-  public async syncToNeon(): Promise<{ success: boolean; message?: string; error?: string }> {
+  public async syncToNeon(isBackground = false): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
-      // First ensure tables exist
-      await this.initNeonTables();
+      this.syncStatus = { status: 'syncing' };
+      this.listeners.forEach((l) => l());
 
       const payload = {
         departments: this.departments,
         users: this.users,
         computers: this.computers,
         parts: this.parts,
-        repairs: this.repairs
+        repairs: this.repairs,
+        deletedIds: {
+          computers: [...this.deletedIds.computers],
+          repairs: [...this.deletedIds.repairs],
+          parts: [...this.deletedIds.parts],
+          departments: [...this.deletedIds.departments],
+          users: [...this.deletedIds.users]
+        }
       };
 
       const res = await fetch('/api/database/sync', {
@@ -1120,30 +1200,88 @@ class DataServiceManager {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      return await res.json();
+      const data = await res.json();
+      if (data.success) {
+        // Clear deleted IDs after successful database persistence
+        this.deletedIds = { computers: [], repairs: [], parts: [], departments: [], users: [] };
+        try {
+          localStorage.setItem(STORAGE_KEY_DELETED_IDS, JSON.stringify(this.deletedIds));
+        } catch {
+          // ignore
+        }
+        const nowTime = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        this.syncStatus = {
+          status: 'synced',
+          lastSyncTime: nowTime
+        };
+        this.listeners.forEach((l) => l());
+        return { success: true, message: `ซิงค์ข้อมูลกับ Neon (computer-MG) สำเร็จ (${nowTime})` };
+      } else {
+        this.syncStatus = { status: 'error', error: data.error || data.message || 'Sync failed' };
+        this.listeners.forEach((l) => l());
+        return { success: false, error: data.error || data.message || 'Sync failed' };
+      }
     } catch (e: any) {
+      this.syncStatus = { status: 'error', error: e.message || 'Sync request failed' };
+      this.listeners.forEach((l) => l());
       return { success: false, error: e.message || 'Sync request failed' };
     }
   }
 
-  public async pullFromNeon(): Promise<{ success: boolean; message?: string; error?: string }> {
+  public async pullFromNeon(silent = false): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
+      if (!silent) {
+        this.syncStatus = { status: 'syncing' };
+        this.listeners.forEach((l) => l());
+      }
       const res = await fetch('/api/database/pull');
       const json = await res.json();
       if (json.success && json.data) {
         const { departments, users, computers, parts, repairs } = json.data;
-        if (Array.isArray(departments) && departments.length > 0) this.departments = departments;
-        if (Array.isArray(users) && users.length > 0) this.users = users;
-        if (Array.isArray(computers) && computers.length > 0) this.computers = computers;
-        if (Array.isArray(parts) && parts.length > 0) this.parts = parts;
-        if (Array.isArray(repairs) && repairs.length > 0) this.repairs = repairs;
+        let hasData = false;
+        if (Array.isArray(departments) && departments.length > 0) {
+          this.departments = departments;
+          hasData = true;
+        }
+        if (Array.isArray(users) && users.length > 0) {
+          this.users = users;
+          hasData = true;
+        }
+        if (Array.isArray(computers) && computers.length > 0) {
+          this.computers = computers;
+          hasData = true;
+        }
+        if (Array.isArray(parts) && parts.length > 0) {
+          this.parts = parts;
+          hasData = true;
+        }
+        if (Array.isArray(repairs) && repairs.length > 0) {
+          this.repairs = repairs;
+          hasData = true;
+        }
 
-        this.notify();
-        return { success: true, message: 'ดึงข้อมูลล่าสุดจาก Neon PostgreSQL สำเร็จ' };
+        const nowTime = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        this.syncStatus = { status: 'synced', lastSyncTime: nowTime };
+        if (hasData) {
+          this.notify(false); // Don't trigger sync-back when pulling
+          return { success: true, message: `ดึงข้อมูลล่าสุดจาก Neon PostgreSQL (computer-MG) สำเร็จ (${nowTime})` };
+        } else {
+          // If remote database is empty, push initial data
+          await this.syncToNeon(true);
+          return { success: true, message: 'ส่งข้อมูลตั้งต้นไปยังฐานข้อมูล Neon (computer-MG) สำเร็จ' };
+        }
       } else {
+        if (!silent) {
+          this.syncStatus = { status: 'error', error: json.error || 'Failed to pull from Neon' };
+          this.listeners.forEach((l) => l());
+        }
         return { success: false, error: json.error || 'Failed to pull from Neon' };
       }
     } catch (e: any) {
+      if (!silent) {
+        this.syncStatus = { status: 'error', error: e.message || 'Pull request failed' };
+        this.listeners.forEach((l) => l());
+      }
       return { success: false, error: e.message || 'Pull request failed' };
     }
   }

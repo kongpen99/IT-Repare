@@ -19,9 +19,14 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({ onResetData, onE
   const [neonStatus, setNeonStatus] = useState<{ connected: boolean; message?: string; version?: string } | null>(null);
   const [isCheckingNeon, setIsCheckingNeon] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [liveSync, setLiveSync] = useState(DataService.getSyncStatus());
 
   useEffect(() => {
     checkStatus();
+    const unsub = DataService.subscribe(() => {
+      setLiveSync(DataService.getSyncStatus());
+    });
+    return unsub;
   }, []);
 
   const checkStatus = async () => {
@@ -187,9 +192,22 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({ onResetData, onE
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Vercel Project:</span>
                 <span className="font-semibold font-mono px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md text-[11px]">
-                  {neonStatus?.projectName || 'computer-repair -01'}
+                  {neonStatus?.projectName || 'computer-repair-01'}
                 </span>
               </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">สถานะ CRUD & Sync:</span>
+                <span className="inline-flex items-center gap-1 font-semibold text-emerald-600">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  เพิ่ม/ลบ/แก้ไข เรียลไทม์
+                </span>
+              </div>
+              {liveSync.lastSyncTime && (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">ซิงค์ล่าสุด:</span>
+                  <span className="font-mono text-slate-600 text-[11px]">{liveSync.lastSyncTime}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">สถานะการเชื่อมต่อ:</span>
                 {neonStatus?.connected ? (
@@ -206,7 +224,7 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({ onResetData, onE
               </div>
               <p className="text-[11px] text-slate-500 pt-1 leading-relaxed border-t border-slate-200/60">
                 {neonStatus?.connected
-                  ? `ระบบเชื่อมต่อฐานข้อมูล ${neonStatus?.databaseName || 'computer-MG'} บน Neon PostgreSQL เรียบร้อยแล้ว ข้อมูลจะซิงค์และบันทึกลงฐานข้อมูลจริง`
+                  ? `ระบบเชื่อมต่อฐานข้อมูล ${neonStatus?.databaseName || 'computer-MG'} บน Neon PostgreSQL เรียบร้อยแล้ว การเพิ่ม ลบ แก้ไข (CRUD) ของรายการคอมพิวเตอร์ งานซ่อม อะไหล่ แผนก และผู้ใช้ จะซิงค์ไปยัง Neon ทันที`
                   : 'กำลังเชื่อมต่อไปยังฐานข้อมูล computer-MG บน Neon...'}
               </p>
             </div>

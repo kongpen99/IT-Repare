@@ -82,6 +82,16 @@ function MainApp() {
     setUsers(DataService.getUsers());
   }, []);
 
+  // Subscribe to DataService changes (auto-sync, Neon pull, CRUD mutations)
+  useEffect(() => {
+    const unsubscribe = DataService.subscribe(() => {
+      refreshData();
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [refreshData]);
+
   // Dashboard Stats
   const dashboardStats: DashboardStats = useMemo(() => {
     return DataService.getDashboardStats();

@@ -41,7 +41,7 @@ async function startServer() {
         provider: 'neon-postgresql',
         connected: true,
         databaseName: dbName,
-        projectName: process.env.VERCEL_PROJECT_NAME || 'computer-repair -01',
+        projectName: process.env.VERCEL_PROJECT_NAME || 'computer-repair-01',
         currentTime: result[0]?.current_time,
         version: result[0]?.pg_version,
         message: `Successfully connected to Neon PostgreSQL (${dbName})`
@@ -51,7 +51,7 @@ async function startServer() {
         provider: 'neon-postgresql',
         connected: false,
         databaseName: 'computer-MG',
-        projectName: process.env.VERCEL_PROJECT_NAME || 'computer-repair -01',
+        projectName: process.env.VERCEL_PROJECT_NAME || 'computer-repair-01',
         error: error.message || 'Failed to query Neon database'
       });
     }
