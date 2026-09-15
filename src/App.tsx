@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { DataService } from './services/dataService';
 import {
   User,
+  Role,
   Computer,
   Repair,
   Part,
@@ -138,6 +139,32 @@ function MainApp() {
       setCurrentUser(user);
       success(`เข้าสู่ระบบในฐานะ ${user.name} (${user.role})`);
     }
+  };
+
+  const handleRegister = (data: {
+    name: string;
+    username: string;
+    email: string;
+    password: string;
+    role?: Role;
+    departmentId?: string;
+  }) => {
+    const res = DataService.registerUser(data);
+    if (res.success && res.user) {
+      refreshData();
+      setCurrentUser(res.user);
+      success(`ยินดีต้อนรับ ${res.user.name}`, 'สมัครสมาชิกและเข้าสู่ระบบสำเร็จ');
+    }
+    return res;
+  };
+
+  const handleResetPassword = (identifier: string, newPass: string) => {
+    const res = DataService.resetPassword(identifier, newPass);
+    if (res.success) {
+      refreshData();
+      success(res.message);
+    }
+    return res;
   };
 
   const handleLogout = () => {
@@ -325,25 +352,27 @@ function MainApp() {
     try {
       const saved = DataService.saveUser(userData);
       refreshData();
-      success(`บันทึกบัญชีผู้ใช้ ${saved.name} (${saved.role}) สำเร็จ`);
+      success(`บันทึกบัญชีผู้ใช้ "${saved.name}" (@${saved.username}) สำเร็จ`);
     } catch (e) {
-      error((e as Error).message);
+      error((e as Error).message || 'เกิดข้อผิดพลาดในการบันทึกผู้ใช้');
+      throw e;
     }
   };
 
   const handleDeleteUser = (userId: string) => {
+    const target = users.find((u) => u.id === userId);
     setConfirmDialog({
       isOpen: true,
       title: 'ยืนยันการลบผู้ใช้',
-      message: 'คุณต้องการลบบัญชีผู้ใช้นี้ออกจากระบบใช่หรือไม่?',
+      message: `คุณต้องการลบบัญชี "${target?.name || 'ผู้ใช้งาน'}" (@${target?.username || ''}) ออกจากระบบใช่หรือไม่?`,
       isDestructive: true,
       onConfirm: () => {
         try {
           DataService.deleteUser(userId);
           refreshData();
-          success('ลบผู้ใช้งานสำเร็จ');
+          success(`ลบบัญชีผู้ใช้ "${target?.name || ''}" สำเร็จ`);
         } catch (e) {
-          error((e as Error).message);
+          error((e as Error).message || 'ไม่สามารถลบผู้ใช้งานได้');
         }
         setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
       }
@@ -418,7 +447,10 @@ function MainApp() {
     return (
       <LoginPage
         onLogin={handleLogin}
+        onRegister={handleRegister}
+        onResetPassword={handleResetPassword}
         demoUsers={users}
+        departments={departments}
         onQuickLogin={handleQuickLogin}
       />
     );
@@ -555,6 +587,7 @@ function MainApp() {
           {currentSubView === 'users' && (
             <UsersManagement
               users={users}
+              departments={departments}
               currentUser={currentUser}
               onSaveUser={handleSaveUser}
               onDeleteUser={handleDeleteUser}

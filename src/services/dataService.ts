@@ -1,5 +1,6 @@
 import {
   User,
+  Role,
   Department,
   Computer,
   Part,
@@ -125,17 +126,124 @@ class DataServiceManager {
     );
 
     if (!user) {
-      return { success: false, message: 'ไม่พบชื่อผู้ใช้งาน หรือบัญชีถูกปิดการใช้งาน' };
+      return { success: false, message: 'อีเมลหรือชื่อผู้ใช้ที่คุณป้อนไม่ตรงกับบัญชีใดๆ ในระบบ' };
     }
 
     // Support standard passwords
     if (user.password && user.password !== password && password !== 'password123') {
-      return { success: false, message: 'รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง' };
+      return { success: false, message: 'รหัสผ่านที่คุณป้อนไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง' };
     }
 
     this.currentUser = user;
     this.notify();
     return { success: true, user };
+  }
+
+  public findUser(identifier: string): User | undefined {
+    if (!identifier) return undefined;
+    const trimmed = identifier.trim().toLowerCase();
+    return this.users.find(
+      (u) =>
+        u.username.toLowerCase() === trimmed ||
+        u.email.toLowerCase() === trimmed ||
+        u.id.toLowerCase() === trimmed
+    );
+  }
+
+  public resetPassword(identifier: string, newPassword: string): { success: boolean; message: string; user?: User } {
+    if (!identifier.trim()) {
+      return { success: false, message: 'กรุณาระบุชื่อผู้ใช้หรืออีเมล' };
+    }
+    if (!newPassword || newPassword.length < 4) {
+      return { success: false, message: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร' };
+    }
+
+    const user = this.findUser(identifier);
+    if (!user) {
+      return { success: false, message: 'ไม่พบบัญชีผู้ใช้ที่ตรงกับข้อมูลที่ระบุ' };
+    }
+
+    user.password = newPassword;
+    user.updatedAt = new Date().toISOString();
+    this.users = this.users.map((u) => (u.id === user.id ? { ...user } : u));
+    
+    // If current logged-in user is this user, update state too
+    if (this.currentUser?.id === user.id) {
+      this.currentUser = { ...user };
+    }
+
+    this.notify();
+    return {
+      success: true,
+      message: `รีเซ็ตรหัสผ่านสำหรับบัญชี "${user.name}" สำเร็จแล้ว สามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้ทันที`,
+      user
+    };
+  }
+
+  public registerUser(data: {
+    name: string;
+    username: string;
+    email: string;
+    password: string;
+    role?: Role;
+    departmentId?: string;
+  }): { success: boolean; message: string; user?: User } {
+    const trimmedUsername = (data.username || '').trim().toLowerCase();
+    const trimmedEmail = (data.email || '').trim().toLowerCase();
+    const trimmedName = (data.name || '').trim();
+
+    if (!trimmedName) {
+      return { success: false, message: 'กรุณาระบุชื่อ-นามสกุล' };
+    }
+    if (!trimmedUsername) {
+      return { success: false, message: 'กรุณาระบุชื่อผู้ใช้ (Username)' };
+    }
+    if (trimmedUsername.length < 3) {
+      return { success: false, message: 'ชื่อผู้ใช้ (Username) ต้องมีอย่างน้อย 3 ตัวอักษร' };
+    }
+    if (!data.password || data.password.length < 4) {
+      return { success: false, message: 'รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร' };
+    }
+
+    // Check duplicate username
+    const existUsername = this.users.some((u) => u.username.toLowerCase() === trimmedUsername);
+    if (existUsername) {
+      return { success: false, message: `ชื่อผู้ใช้ "${data.username}" ถูกใช้งานแล้ว กรุณาเลือกชื่ออื่น` };
+    }
+
+    // Check duplicate email if provided
+    if (trimmedEmail) {
+      const existEmail = this.users.some((u) => u.email.toLowerCase() === trimmedEmail);
+      if (existEmail) {
+        return { success: false, message: `อีเมล "${data.email}" มีอยู่ในระบบแล้ว กรุณาใช้อีเมลอื่น` };
+      }
+    }
+
+    const deptId = data.departmentId || this.departments[0]?.id || 'dept-1';
+    const dept = this.departments.find((d) => d.id === deptId);
+
+    const newUser: User = {
+      id: `user-${Date.now()}`,
+      username: data.username.trim(),
+      email: data.email.trim() || `${trimmedUsername}@company.co.th`,
+      name: trimmedName,
+      role: data.role || 'TECHNICIAN',
+      departmentId: deptId,
+      departmentName: dept?.name || 'ฝ่ายเทคโนโลยีสารสนเทศ (IT)',
+      isActive: true,
+      password: data.password,
+      avatarUrl: `https://images.unsplash.com/photo-${1534528741775 + (this.users.length % 5) * 1000}?w=150&auto=format&fit=crop&q=80`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    this.users.unshift(newUser);
+    this.notify();
+    return {
+      success: true,
+      message: `สมัครสมาชิกสำเร็จ ยินดีต้อนรับคุณ ${newUser.name}`,
+      user: newUser
+    };
   }
 
   public logout() {
@@ -161,22 +269,70 @@ class DataServiceManager {
   }
 
   public saveUser(user: Partial<User>): User {
+    const dept = user.departmentId ? this.departments.find((d) => d.id === user.departmentId) : undefined;
+    const deptName = dept ? dept.name : user.departmentName;
+
     if (user.id) {
-      this.users = this.users.map((u) => (u.id === user.id ? { ...u, ...user, updatedAt: new Date().toISOString() } : u));
+      // Validate unique username among other users
+      if (user.username) {
+        const trimmedU = user.username.trim().toLowerCase();
+        const conflict = this.users.find((u) => u.id !== user.id && u.username.toLowerCase() === trimmedU);
+        if (conflict) {
+          throw new Error(`ชื่อผู้ใช้ (Username) "${user.username}" ถูกใช้งานโดยบัญชีอื่นแล้ว`);
+        }
+      }
+
+      this.users = this.users.map((u) => {
+        if (u.id === user.id) {
+          const updated: User = {
+            ...u,
+            ...user,
+            username: user.username ? user.username.trim() : u.username,
+            name: user.name ? user.name.trim() : u.name,
+            email: user.email ? user.email.trim() : u.email,
+            departmentName: deptName || u.departmentName,
+            password: user.password && user.password.trim() ? user.password.trim() : u.password,
+            updatedAt: new Date().toISOString()
+          };
+          return updated;
+        }
+        return u;
+      });
+
       const updated = this.users.find((u) => u.id === user.id)!;
+      if (this.currentUser?.id === user.id) {
+        this.currentUser = { ...updated };
+      }
       this.notify();
       return updated;
     } else {
+      // Add new user
+      if (!user.name || !user.name.trim()) {
+        throw new Error('กรุณาระบุชื่อ-นามสกุลของผู้ใช้งาน');
+      }
+      if (!user.username || !user.username.trim()) {
+        throw new Error('กรุณาระบุชื่อผู้ใช้ (Username)');
+      }
+      const trimmedU = user.username.trim().toLowerCase();
+      const conflict = this.users.find((u) => u.username.toLowerCase() === trimmedU);
+      if (conflict) {
+        throw new Error(`ชื่อผู้ใช้ (Username) "${user.username}" มีอยู่ในระบบแล้ว กรุณาใช้ชื่ออื่น`);
+      }
+
+      const deptId = user.departmentId || this.departments[0]?.id || 'dept-1';
+      const resolvedDept = this.departments.find((d) => d.id === deptId);
+
       const newUser: User = {
         id: `user-${Date.now()}`,
-        username: user.username || `user_${Date.now()}`,
-        email: user.email || `${user.username || 'user'}@company.co.th`,
-        name: user.name || 'เจ้าหน้าที่ใหม่',
+        username: user.username.trim(),
+        email: user.email?.trim() || `${user.username.trim()}@company.co.th`,
+        name: user.name.trim(),
         role: user.role || 'TECHNICIAN',
-        departmentId: user.departmentId || 'dept-1',
+        departmentId: deptId,
+        departmentName: resolvedDept?.name || 'ฝ่ายเทคโนโลยีสารสนเทศ (IT)',
         isActive: user.isActive !== undefined ? user.isActive : true,
-        password: user.password || 'password123',
-        avatarUrl: user.avatarUrl || `https://images.unsplash.com/photo-${1500000000000 + (this.users.length % 10)}?w=150&auto=format&fit=crop&q=80`,
+        password: user.password && user.password.trim() ? user.password.trim() : 'password123',
+        avatarUrl: user.avatarUrl || `https://images.unsplash.com/photo-${1507003211169 + (this.users.length % 5) * 2000}?w=150&auto=format&fit=crop&q=80`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -187,7 +343,31 @@ class DataServiceManager {
   }
 
   public deleteUser(id: string): boolean {
-    if (this.currentUser?.id === id) return false;
+    if (this.currentUser?.id === id) {
+      throw new Error('ไม่สามารถลบบัญชีผู้ใช้ที่คุณกำลังเข้าใช้งานอยู่ได้');
+    }
+    if (this.users.length <= 1) {
+      throw new Error('ไม่สามารถลบได้ เนื่องจากระบบต้องมีบัญชีผู้ใช้งานอย่างน้อย 1 บัญชี');
+    }
+
+    const target = this.users.find((u) => u.id === id);
+    if (!target) {
+      throw new Error('ไม่พบบัญชีผู้ใช้ที่ต้องการลบ');
+    }
+
+    // Safely update repairs where this user is assigned as technician
+    this.repairs = this.repairs.map((r) => {
+      if (r.technicianId === id) {
+        return {
+          ...r,
+          technicianId: undefined,
+          technicianName: 'ไม่ระบุ (ช่างเดิมถูกลบออกจากระบบ)',
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return r;
+    });
+
     this.users = this.users.filter((u) => u.id !== id);
     this.notify();
     return true;
