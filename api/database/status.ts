@@ -48,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       provider: 'neon-postgresql',
       connected: true,
       databaseName: dbName,
-      projectName: process.env.VERCEL_PROJECT_NAME || 'computer-repair',
+      projectName: process.env.VERCEL_PROJECT_NAME || process.env.VERCEL_GIT_REPO_SLUG || 'computer-repair -01',
       currentTime: result[0]?.current_time,
       version: result[0]?.pg_version,
       message: `Successfully connected to Neon PostgreSQL (${dbName}) on Vercel`
@@ -58,7 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       provider: 'neon-postgresql',
       connected: false,
       databaseName: 'computer-MG',
-      projectName: 'computer-repair',
+      projectName: process.env.VERCEL_PROJECT_NAME || 'computer-repair -01',
       error: error.message || 'Failed to query Neon PostgreSQL'
     });
   }

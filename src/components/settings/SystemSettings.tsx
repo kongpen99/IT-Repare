@@ -187,7 +187,7 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({ onResetData, onE
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Vercel Project:</span>
                 <span className="font-semibold font-mono px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md text-[11px]">
-                  {neonStatus?.projectName || 'computer-repair'}
+                  {neonStatus?.projectName || 'computer-repair -01'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
