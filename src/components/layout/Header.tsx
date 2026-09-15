@@ -167,7 +167,7 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* User Profile & Role Switcher */}
+            {/* User Profile & Role Switcher */}
           <div className="relative">
             <button
               onClick={() => {
@@ -196,6 +196,16 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               </div>
               <ChevronDown className="w-4 h-4 text-slate-400" />
+            </button>
+
+            {/* Quick Logout Button */}
+            <button
+              onClick={onLogout}
+              title="ออกจากระบบ เพื่อไปยังหน้า Login"
+              className="hidden lg:inline-flex items-center gap-1.5 ml-1 px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-xl text-xs font-medium transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>ออกจากระบบ</span>
             </button>
 
             {showUserDropdown && (

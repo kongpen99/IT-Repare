@@ -24,7 +24,7 @@ const STORAGE_KEY_DEPTS = 'crm_departments_v1';
 const STORAGE_KEY_PCS = 'crm_computers_v1';
 const STORAGE_KEY_PARTS = 'crm_parts_v1';
 const STORAGE_KEY_REPAIRS = 'crm_repairs_v1';
-const STORAGE_KEY_CURRENT_USER = 'crm_current_user_v1';
+const STORAGE_KEY_CURRENT_USER = 'crm_auth_session_v2';
 
 class DataServiceManager {
   private users: User[] = [];
@@ -56,12 +56,25 @@ class DataServiceManager {
       const storedRepairs = localStorage.getItem(STORAGE_KEY_REPAIRS);
       this.repairs = storedRepairs ? JSON.parse(storedRepairs) : INITIAL_REPAIRS;
 
+      // Clean up legacy auto-login key if present
+      try {
+        localStorage.removeItem('crm_current_user_v1');
+      } catch {
+        // ignore
+      }
+
       const storedCurrentUser = localStorage.getItem(STORAGE_KEY_CURRENT_USER);
       if (storedCurrentUser) {
-        this.currentUser = JSON.parse(storedCurrentUser);
+        try {
+          const parsed = JSON.parse(storedCurrentUser);
+          const validUser = this.users.find((u) => u.id === parsed.id && u.isActive);
+          this.currentUser = validUser || null;
+        } catch {
+          this.currentUser = null;
+        }
       } else {
-        // Default login as Admin for instant convenience
-        this.currentUser = this.users[0] || null;
+        // Default to null: Display the Login Form when opening the application
+        this.currentUser = null;
       }
     } catch (e) {
       console.error('Failed to load from storage, using initial mock data', e);
@@ -70,7 +83,7 @@ class DataServiceManager {
       this.computers = [...INITIAL_COMPUTERS];
       this.parts = [...INITIAL_PARTS];
       this.repairs = [...INITIAL_REPAIRS];
-      this.currentUser = this.users[0] || null;
+      this.currentUser = null;
     }
     this.persist();
   }
@@ -98,6 +111,7 @@ class DataServiceManager {
         localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(this.currentUser));
       } else {
         localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
+        localStorage.removeItem('crm_current_user_v1');
       }
     } catch (err) {
       console.warn('Storage persistence error:', err);
@@ -110,7 +124,13 @@ class DataServiceManager {
     this.computers = [...INITIAL_COMPUTERS];
     this.parts = [...INITIAL_PARTS];
     this.repairs = [...INITIAL_REPAIRS];
-    this.currentUser = this.users[0] || null;
+    this.currentUser = null;
+    try {
+      localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
+      localStorage.removeItem('crm_current_user_v1');
+    } catch {
+      // ignore
+    }
     this.notify();
   }
 
