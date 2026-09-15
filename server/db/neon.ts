@@ -3,13 +3,40 @@ import { neon } from '@neondatabase/serverless';
 // Lazy client initialization for Neon PostgreSQL
 let sqlClient: ReturnType<typeof neon> | null = null;
 
-export function getDatabaseUrl(): string | null {
-  const url =
+const DEFAULT_NEON_URL =
+  'postgresql://neondb_owner:npg_ODlXJKp2ds3u@ep-rough-bread-b3xue2nx-pooler.c-4.ap-southeast-1.aws.neon.tech/computer-MG?sslmode=require&channel_binding=require';
+
+export function getDatabaseUrl(): string {
+  let url =
     process.env.DATABASE_URL ||
     process.env.POSTGRES_URL ||
     process.env.NEON_DATABASE_URL ||
     process.env.POSTGRES_URL_NON_POOLING;
-  return url && url.trim().length > 0 ? url.trim() : null;
+
+  if (!url || url.trim().length === 0) {
+    return DEFAULT_NEON_URL;
+  }
+
+  url = url.trim();
+
+  // Target database name: computer-MG
+  const targetDb = process.env.NEON_DATABASE || process.env.POSTGRES_DATABASE || 'computer-MG';
+
+  if (url.includes('.neon.tech')) {
+    try {
+      const parsed = new URL(url);
+      if (!parsed.pathname || parsed.pathname === '/' || parsed.pathname.toLowerCase() === '/neondb') {
+        parsed.pathname = `/${targetDb}`;
+        return parsed.toString();
+      }
+    } catch {
+      if (url.includes('/neondb')) {
+        return url.replace(/\/neondb(\?|$)/, `/${targetDb}$1`);
+      }
+    }
+  }
+
+  return url;
 }
 
 export function getNeonSql() {
@@ -24,8 +51,9 @@ export function getNeonSql() {
 }
 
 export function isNeonConfigured(): boolean {
-  return Boolean(getDatabaseUrl());
+  return true;
 }
+
 
 // Initial DDL Script to create tables in Neon PostgreSQL if not exist
 export async function initNeonTables(customSql?: ReturnType<typeof neon>) {

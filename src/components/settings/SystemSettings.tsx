@@ -176,7 +176,19 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({ onResetData, onE
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Database Engine:</span>
-                <span className="font-semibold font-mono text-emerald-700">Neon PostgreSQL (Serverless)</span>
+                <span className="font-semibold font-mono text-emerald-700">Neon PostgreSQL</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Database Name:</span>
+                <span className="font-semibold font-mono px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md text-[11px]">
+                  {neonStatus?.databaseName || 'computer-MG'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Vercel Project:</span>
+                <span className="font-semibold font-mono px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md text-[11px]">
+                  {neonStatus?.projectName || 'computer-repair'}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">สถานะการเชื่อมต่อ:</span>
@@ -188,14 +200,14 @@ export const SystemSettings: React.FC<SystemSettingsProps> = ({ onResetData, onE
                 ) : (
                   <span className="inline-flex items-center gap-1 font-semibold text-amber-600">
                     <AlertCircle className="w-3.5 h-3.5" />
-                    รอใส่ DATABASE_URL
+                    รอการเชื่อมต่อ
                   </span>
                 )}
               </div>
               <p className="text-[11px] text-slate-500 pt-1 leading-relaxed border-t border-slate-200/60">
                 {neonStatus?.connected
-                  ? 'ระบบเชื่อมต่อ Neon Serverless PostgreSQL แล้ว ข้อมูลซิงค์ลงฐานข้อมูลจริงบน Cloud'
-                  : 'ใส่ DATABASE_URL ใน Settings / Environment เพื่อซิงค์ข้อมูลกับ Neon ทันที'}
+                  ? `ระบบเชื่อมต่อฐานข้อมูล ${neonStatus?.databaseName || 'computer-MG'} บน Neon PostgreSQL เรียบร้อยแล้ว ข้อมูลจะซิงค์และบันทึกลงฐานข้อมูลจริง`
+                  : 'กำลังเชื่อมต่อไปยังฐานข้อมูล computer-MG บน Neon...'}
               </p>
             </div>
 

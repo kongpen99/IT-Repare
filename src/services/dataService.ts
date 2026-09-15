@@ -1075,7 +1075,15 @@ class DataServiceManager {
   }
 
   // --- Neon PostgreSQL Integration Methods ---
-  public async checkNeonDatabaseStatus(): Promise<{ connected: boolean; provider?: string; message?: string; error?: string; version?: string }> {
+  public async checkNeonDatabaseStatus(): Promise<{
+    connected: boolean;
+    provider?: string;
+    message?: string;
+    error?: string;
+    version?: string;
+    databaseName?: string;
+    projectName?: string;
+  }> {
     try {
       const res = await fetch('/api/database/status');
       const data = await res.json();

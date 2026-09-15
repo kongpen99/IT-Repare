@@ -35,18 +35,23 @@ async function startServer() {
         });
       }
 
-      const result = await sql`SELECT NOW() as current_time, version() as pg_version`;
+      const result = await sql`SELECT NOW() as current_time, version() as pg_version, current_database() as db_name`;
+      const dbName = result[0]?.db_name || 'computer-MG';
       return res.json({
         provider: 'neon-postgresql',
         connected: true,
+        databaseName: dbName,
+        projectName: process.env.VERCEL_PROJECT_NAME || 'computer-repair',
         currentTime: result[0]?.current_time,
         version: result[0]?.pg_version,
-        message: 'Successfully connected to Neon PostgreSQL'
+        message: `Successfully connected to Neon PostgreSQL (${dbName})`
       });
     } catch (error: any) {
       return res.status(500).json({
         provider: 'neon-postgresql',
         connected: false,
+        databaseName: 'computer-MG',
+        projectName: 'computer-repair',
         error: error.message || 'Failed to query Neon database'
       });
     }
