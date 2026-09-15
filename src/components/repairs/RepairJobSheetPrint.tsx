@@ -119,37 +119,47 @@ export const RepairJobSheetPrint: React.FC<RepairJobSheetPrintProps> = ({
           </div>
 
           {/* Section 3: Parts & Cost */}
-          {repair.partsUsed && repair.partsUsed.length > 0 && (
-            <div className="border border-slate-300 rounded-lg overflow-hidden text-xs">
-              <div className="bg-slate-100 px-3 py-1.5 font-bold text-slate-900 border-b border-slate-300">
-                รายการอะไหล่และอุปกรณ์ที่ใช้ (Spare Parts Used)
-              </div>
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 border-b border-slate-200 font-semibold text-slate-700">
-                  <tr>
-                    <th className="px-3 py-1.5">รหัส/ชื่ออะไหล่</th>
-                    <th className="px-3 py-1.5 text-center">จำนวน</th>
-                    <th className="px-3 py-1.5 text-right">ราคาต่อหน่วย</th>
-                    <th className="px-3 py-1.5 text-right">รวมเงิน (บาท)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {repair.partsUsed.map((p) => (
-                    <tr key={p.id}>
-                      <td className="px-3 py-1.5">{p.partName}</td>
-                      <td className="px-3 py-1.5 text-center">{p.quantity}</td>
-                      <td className="px-3 py-1.5 text-right">{p.unitPrice.toLocaleString()}</td>
-                      <td className="px-3 py-1.5 text-right font-medium">{(p.quantity * p.unitPrice).toLocaleString()}</td>
+          {(() => {
+            const repairParts = repair.parts || (repair as any).partsUsed || [];
+            if (repairParts.length === 0) return null;
+            return (
+              <div className="border border-slate-300 rounded-lg overflow-hidden text-xs">
+                <div className="bg-slate-100 px-3 py-1.5 font-bold text-slate-900 border-b border-slate-300">
+                  รายการอะไหล่และอุปกรณ์ที่ใช้ (Spare Parts Used)
+                </div>
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 border-b border-slate-200 font-semibold text-slate-700">
+                    <tr>
+                      <th className="px-3 py-1.5">รหัส/ชื่ออะไหล่</th>
+                      <th className="px-3 py-1.5 text-center">จำนวน</th>
+                      <th className="px-3 py-1.5 text-right">ราคาต่อหน่วย</th>
+                      <th className="px-3 py-1.5 text-right">รวมเงิน (บาท)</th>
                     </tr>
-                  ))}
-                  <tr className="bg-slate-50 font-bold">
-                    <td colSpan={3} className="px-3 py-2 text-right">ยอดรวมค่าอะไหล่และบริการทั้งสิ้น:</td>
-                    <td className="px-3 py-2 text-right text-blue-900">{repair.cost.toLocaleString()} บาท</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {repairParts.map((p: any) => {
+                      const unitPrice = Number(p.price ?? p.unitPrice ?? 0);
+                      const total = Number(p.total ?? (p.quantity * unitPrice));
+                      return (
+                        <tr key={p.id}>
+                          <td className="px-3 py-1.5">
+                            {p.partName} {p.partCode && <span className="font-mono text-slate-500">({p.partCode})</span>}
+                          </td>
+                          <td className="px-3 py-1.5 text-center">{p.quantity}</td>
+                          <td className="px-3 py-1.5 text-right">{unitPrice.toLocaleString()}</td>
+                          <td className="px-3 py-1.5 text-right font-medium">{total.toLocaleString()}</td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="bg-slate-50 font-bold">
+                      <td colSpan={3} className="px-3 py-2 text-right">ยอดรวมค่าอะไหล่และบริการทั้งสิ้น:</td>
+                      <td className="px-3 py-2 text-right text-blue-900">{repair.cost.toLocaleString()} บาท</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
 
           {/* Section 4: Signatures */}
           <div className="grid grid-cols-3 gap-6 pt-8 text-center text-xs">

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   Filter,
@@ -75,6 +75,13 @@ export const ComputerListView: React.FC<ComputerListViewProps> = ({
   }, [computers, searchTerm, selectedDept, selectedStatus, selectedBrand]);
 
   const totalPages = Math.ceil(filteredComputers.length / itemsPerPage) || 1;
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
   const paginatedComputers = filteredComputers.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -246,6 +253,7 @@ export const ComputerListView: React.FC<ComputerListViewProps> = ({
                   setSelectedDept('ALL');
                   setSelectedStatus('ALL');
                   setSelectedBrand('ALL');
+                  setCurrentPage(1);
                 }}
                 className="ml-3 text-blue-600 hover:underline"
               >

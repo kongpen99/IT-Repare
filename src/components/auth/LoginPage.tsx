@@ -222,246 +222,97 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5] flex flex-col justify-between font-sans text-[#1c1e21]" id="facebook-login-root">
+    <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center p-4 font-sans text-[#1c1e21]" id="facebook-login-root">
       
-      {/* Main Login Area */}
-      <main className="flex-1 flex items-center justify-center px-4 py-8 sm:py-16 md:py-24">
-        <div className="w-full max-w-[980px] grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          
-          {/* Left Hero / Brand Column (Iconic Facebook Style) */}
-          <div className="lg:col-span-7 text-center lg:text-left pt-2 lg:pt-0 lg:pr-6">
-            
-            {/* Facebook / Service Logo */}
-            <div className="inline-flex items-center gap-2 mb-1 justify-center lg:justify-start">
-              <span className="text-[#1877f2] font-bold text-5xl sm:text-6xl tracking-tighter lowercase select-none">
-                facebook
-              </span>
-              <span className="bg-[#1877f2]/10 text-[#1877f2] border border-[#1877f2]/20 font-bold text-xs px-2 py-0.5 rounded-full uppercase tracking-wide">
-                IT CRM
-              </span>
-            </div>
+      {/* Login Card (Exact layout matching the requested screenshot) */}
+      <div className="w-full max-w-[368px] bg-white p-6 sm:p-7 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-slate-200/80">
+        
+        {/* Error Banner */}
+        {errorMsg && (
+          <div className="mb-4 p-3 rounded-lg bg-[#ffebe8] border border-[#dd3c10] text-[#1c1e21] text-xs flex items-start gap-2 animate-in fade-in duration-200">
+            <AlertCircle className="w-4 h-4 text-[#e41e3f] shrink-0 mt-0.5" />
+            <span className="leading-snug">{errorMsg}</span>
+          </div>
+        )}
 
-            {/* Slogan */}
-            <h2 className="text-xl sm:text-2xl lg:text-[28px] font-normal text-[#1c1e21] leading-snug sm:leading-normal max-w-[500px] mx-auto lg:mx-0">
-              Facebook ช่วยคุณเชื่อมต่อและจัดการงานแจ้งซ่อม คอมพิวเตอร์ และอุปกรณ์ไอทีในองค์กรได้อย่างสะดวกและรวดเร็ว
-            </h2>
-
-            {/* Recent Logins (Iconic Facebook Account Picker) */}
-            <div className="mt-8 hidden sm:block">
-              <div className="flex items-center justify-between max-w-[480px] mb-2.5">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  การเข้าสู่ระบบล่าสุด (คลิกเพื่อเข้าสู่ระบบทันที)
-                </span>
-                <span className="text-[11px] text-[#1877f2] hover:underline cursor-pointer font-medium">
-                  {demoUsers.length} บัญชีในระบบ
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 max-w-[480px]">
-                {demoUsers.slice(0, 3).map((u) => (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => onQuickLogin(u.id)}
-                    className="group bg-white rounded-lg border border-slate-200 hover:border-[#1877f2] hover:shadow-lg transition-all duration-200 overflow-hidden text-center flex flex-col items-center relative"
-                  >
-                    <div className="w-full h-24 bg-slate-100 flex items-center justify-center relative overflow-hidden">
-                      {u.avatarUrl ? (
-                        <img
-                          src={u.avatarUrl}
-                          alt={u.name}
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-[#1877f2]/10 text-[#1877f2] flex items-center justify-center font-bold text-lg">
-                          {u.name.slice(0, 1)}
-                        </div>
-                      )}
-                      <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/65 text-white text-[9px] font-bold backdrop-blur-xs uppercase">
-                        {u.role}
-                      </div>
-                    </div>
-                    <div className="p-2.5 w-full bg-white">
-                      <p className="text-xs font-bold text-slate-900 truncate">{u.name.split(' ')[0]}</p>
-                      <p className="text-[11px] text-[#1877f2] truncate font-mono font-medium">@{u.username}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
+        {/* Login Form */}
+        <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+          <div>
+            <input
+              id="login-identifier"
+              type="text"
+              required
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="admin"
+              className="w-full px-3.5 py-2.5 bg-white text-base text-[#1c1e21] border border-slate-300 rounded-lg focus:border-[#1877f2] focus:ring-2 focus:ring-[#1877f2]/20 transition-all outline-none placeholder:text-slate-400"
+            />
           </div>
 
-          {/* Right Column: Facebook Login Card */}
-          <div className="lg:col-span-5 w-full max-w-[396px] mx-auto">
-            <div className="bg-white p-4 sm:p-5 rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.1),0_8px_16px_rgba(0,0,0,0.1)] border border-slate-200/80">
-              
-              {/* Error Banner */}
-              {errorMsg && (
-                <div className="mb-4 p-3 rounded-md bg-[#ffebe8] border border-[#dd3c10] text-[#1c1e21] text-xs flex items-start gap-2 animate-in fade-in duration-200">
-                  <AlertCircle className="w-4 h-4 text-[#e41e3f] shrink-0 mt-0.5" />
-                  <span className="leading-snug">{errorMsg}</span>
-                </div>
-              )}
-
-              {/* Login Form */}
-              <form onSubmit={handleLoginSubmit} className="space-y-3.5">
-                <div>
-                  <input
-                    id="login-identifier"
-                    type="text"
-                    required
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="อีเมลหรือหมายเลขโทรศัพท์มือถือ / ชื่อผู้ใช้"
-                    className="w-full px-4 py-3.5 bg-white text-base text-[#1c1e21] border border-slate-300 rounded-md focus:border-[#1877f2] focus:ring-2 focus:ring-[#1877f2]/20 transition-all outline-none placeholder:text-slate-400 placeholder:text-sm"
-                  />
-                </div>
-
-                <div className="relative">
-                  <input
-                    id="login-password"
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="รหัสผ่าน"
-                    className="w-full px-4 py-3.5 pr-11 bg-white text-base text-[#1c1e21] border border-slate-300 rounded-md focus:border-[#1877f2] focus:ring-2 focus:ring-[#1877f2]/20 transition-all outline-none placeholder:text-slate-400 placeholder:text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                    tabIndex={-1}
-                    title={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-
-                {/* Big Blue Login Button */}
-                <button
-                  id="btn-login-submit"
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3 px-4 bg-[#1877f2] hover:bg-[#166fe5] active:bg-[#1465d2] text-white font-bold text-lg sm:text-xl rounded-md transition-colors shadow-xs disabled:opacity-75 flex items-center justify-center cursor-pointer"
-                >
-                  {isLoading ? (
-                    <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    'เข้าสู่ระบบ'
-                  )}
-                </button>
-              </form>
-
-              {/* Forgotten password? Link */}
-              <div className="text-center py-3">
-                <button
-                  id="btn-forgot-password"
-                  type="button"
-                  onClick={handleOpenForgot}
-                  className="text-xs sm:text-sm text-[#1877f2] hover:underline font-medium cursor-pointer"
-                >
-                  ลืมรหัสผ่านใช่หรือไม่?
-                </button>
-              </div>
-
-              {/* Facebook Divider */}
-              <div className="border-b border-slate-200 my-2" />
-
-              {/* Create New Account Button (Iconic Green) */}
-              <div className="pt-3 pb-1 text-center">
-                <button
-                  id="btn-create-account"
-                  type="button"
-                  onClick={handleOpenRegister}
-                  className="inline-block px-4 py-3 bg-[#42b72a] hover:bg-[#36a420] active:bg-[#2b9217] text-white font-bold text-sm sm:text-base rounded-md transition-colors shadow-xs cursor-pointer"
-                >
-                  สร้างบัญชีใหม่ (Create new account)
-                </button>
-              </div>
-
-            </div>
-
-            {/* Sub-text under form card */}
-            <div className="mt-7 text-center text-xs text-slate-600">
-              <span className="font-bold text-[#1c1e21] hover:underline cursor-pointer">
-                สร้างเพจ
-              </span>{' '}
-              สำหรับคนดัง แบรนด์ หรือธุรกิจศูนย์บริการไอที
-            </div>
-
-          </div>
-
-        </div>
-      </main>
-
-      {/* Facebook-style Full Footer */}
-      <footer className="bg-white border-t border-slate-200 py-6 text-xs text-slate-500">
-        <div className="max-w-[980px] mx-auto px-4">
-          
-          {/* Languages Selector */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pb-2 border-b border-slate-200/80 text-[11px] text-slate-500">
-            <span className="text-slate-800 font-bold">ภาษาไทย</span>
-            <span className="hover:underline cursor-pointer">English (US)</span>
-            <span className="hover:underline cursor-pointer">日本語</span>
-            <span className="hover:underline cursor-pointer">中文(简体)</span>
-            <span className="hover:underline cursor-pointer">Tiếng Việt</span>
-            <span className="hover:underline cursor-pointer">Bahasa Indonesia</span>
-            <span className="hover:underline cursor-pointer">Español</span>
-            <span className="hover:underline cursor-pointer">Português (Brasil)</span>
-            <span className="hover:underline cursor-pointer">Français (France)</span>
-            <span className="hover:underline cursor-pointer">Deutsch</span>
+          <div className="relative">
+            <input
+              id="login-password"
+              type={showPassword ? 'text' : 'password'}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••••"
+              className="w-full px-3.5 py-2.5 pr-10 bg-white text-base text-[#1c1e21] border border-slate-300 rounded-lg focus:border-[#1877f2] focus:ring-2 focus:ring-[#1877f2]/20 transition-all outline-none placeholder:text-slate-400"
+            />
             <button
               type="button"
-              className="w-5 h-5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center rounded-xs border border-slate-300"
-              title="ภาษาเพิ่มเติม"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+              tabIndex={-1}
+              title={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
             >
-              +
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
 
-          {/* Facebook Links Grid */}
-          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-[11px] text-slate-500">
-            <span onClick={handleOpenRegister} className="hover:underline cursor-pointer">สมัครใช้งาน</span>
-            <span className="hover:underline cursor-pointer">เข้าสู่ระบบ</span>
-            <span className="hover:underline cursor-pointer">Messenger</span>
-            <span className="hover:underline cursor-pointer">Facebook Lite</span>
-            <span className="hover:underline cursor-pointer">วิดีโอ</span>
-            <span className="hover:underline cursor-pointer">สถานที่</span>
-            <span className="hover:underline cursor-pointer">เกม</span>
-            <span className="hover:underline cursor-pointer">Marketplace</span>
-            <span className="hover:underline cursor-pointer">Meta Pay</span>
-            <span className="hover:underline cursor-pointer">Meta Store</span>
-            <span className="hover:underline cursor-pointer">Meta Quest</span>
-            <span className="hover:underline cursor-pointer">Ray-Ban Meta</span>
-            <span className="hover:underline cursor-pointer">Meta AI</span>
-            <span className="hover:underline cursor-pointer">Instagram</span>
-            <span className="hover:underline cursor-pointer">Threads</span>
-            <span className="hover:underline cursor-pointer">ระบบงานแจ้งซ่อม IT</span>
-            <span className="hover:underline cursor-pointer">คลังอะไหล่คอมพิวเตอร์</span>
-            <span className="hover:underline cursor-pointer">นโยบายความเป็นส่วนตัว</span>
-            <span className="hover:underline cursor-pointer">ศูนย์ความเป็นส่วนตัว</span>
-            <span className="hover:underline cursor-pointer">กลุ่ม</span>
-            <span className="hover:underline cursor-pointer">เกี่ยวกับ</span>
-            <span className="hover:underline cursor-pointer">สร้างโฆษณา</span>
-            <span className="hover:underline cursor-pointer">สร้างเพจ</span>
-            <span className="hover:underline cursor-pointer">ผู้พัฒนา</span>
-            <span className="hover:underline cursor-pointer">ร่วมงานกับเรา</span>
-            <span className="hover:underline cursor-pointer">คุกกี้</span>
-            <span className="hover:underline cursor-pointer">ตัวเลือกโฆษณา</span>
-            <span className="hover:underline cursor-pointer">ข้อกำหนด</span>
-            <span className="hover:underline cursor-pointer">วิธีใช้</span>
-          </div>
+          {/* Blue Login Button */}
+          <button
+            id="btn-login-submit"
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-2.5 px-4 bg-[#1877f2] hover:bg-[#166fe5] active:bg-[#1465d2] text-white font-bold text-base sm:text-lg rounded-lg transition-colors shadow-xs disabled:opacity-75 flex items-center justify-center cursor-pointer"
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              'เข้าสู่ระบบ'
+            )}
+          </button>
+        </form>
 
-          <div className="mt-4 text-[11px] text-slate-400 flex items-center justify-between">
-            <span>Meta © 2026 • CRM Service Computer Repair Management Enterprise</span>
-            <span className="hidden sm:inline font-mono">Build v2.4.0</span>
-          </div>
-
+        {/* Forgotten password? Link */}
+        <div className="text-center pt-3.5 pb-2">
+          <button
+            id="btn-forgot-password"
+            type="button"
+            onClick={handleOpenForgot}
+            className="text-sm text-[#1877f2] hover:underline font-normal cursor-pointer"
+          >
+            ลืมรหัสผ่านใช่หรือไม่?
+          </button>
         </div>
-      </footer>
+
+        {/* Divider */}
+        <div className="border-b border-slate-200 my-2" />
+
+        {/* Create New Account Button (Green) */}
+        <div className="pt-3 pb-1 text-center">
+          <button
+            id="btn-create-account"
+            type="button"
+            onClick={handleOpenRegister}
+            className="inline-block px-4 py-2.5 bg-[#36a420] hover:bg-[#2d8e1a] active:bg-[#277e16] text-white font-bold text-sm sm:text-base rounded-lg transition-colors shadow-xs cursor-pointer"
+          >
+            สร้างบัญชีใหม่ (Create new account)
+          </button>
+        </div>
+
+      </div>
 
       {/* ========================================================================= */}
       {/* MODAL 1: Facebook-Style Sign Up Modal (สร้างบัญชีผู้ใช้ใหม่) */}

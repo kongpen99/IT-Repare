@@ -442,20 +442,6 @@ function MainApp() {
     success('ดาวน์โหลดไฟล์สำรองข้อมูล JSON สำเร็จ');
   };
 
-  // If not logged in, render Login Page
-  if (!currentUser) {
-    return (
-      <LoginPage
-        onLogin={handleLogin}
-        onRegister={handleRegister}
-        onResetPassword={handleResetPassword}
-        demoUsers={users}
-        departments={departments}
-        onQuickLogin={handleQuickLogin}
-      />
-    );
-  }
-
   // Global search filtering for computers/repairs
   const activeComputers = useMemo(() => {
     if (!globalSearchTerm.trim()) return computers;
@@ -484,6 +470,20 @@ function MainApp() {
         (r.technicianName && r.technicianName.toLowerCase().includes(term))
     );
   }, [repairs, globalSearchTerm]);
+
+  // If not logged in, render Login Page
+  if (!currentUser) {
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        onResetPassword={handleResetPassword}
+        demoUsers={users}
+        departments={departments}
+        onQuickLogin={handleQuickLogin}
+      />
+    );
+  }
 
   return (
     <AppLayout

@@ -75,7 +75,11 @@ export const RepairListView: React.FC<RepairListViewProps> = ({
         (r.technicianName && r.technicianName.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchStatus = selectedStatus === 'ALL' || r.status === selectedStatus;
-      const matchType = selectedType === 'ALL' || r.problemType === selectedType;
+      const matchType =
+        selectedType === 'ALL' ||
+        r.problemType === selectedType ||
+        r.problemType?.toLowerCase() === selectedType.toLowerCase() ||
+        (selectedType.toLowerCase().includes('virus') && r.problemType?.toLowerCase().includes('virus'));
       const matchPriority = selectedPriority === 'ALL' || r.priority === selectedPriority;
       const matchTech = selectedTech === 'ALL' || r.technicianId === selectedTech;
       const matchDept = selectedDept === 'ALL' || r.departmentId === selectedDept;

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   FileSpreadsheet,
   Download,
@@ -52,6 +52,12 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   );
   const [dateRange, setDateRange] = useState('ALL');
   const [selectedDept, setSelectedDept] = useState('ALL');
+
+  useEffect(() => {
+    if (initialSubTab === 'computers' || initialSubTab === 'cost' || initialSubTab === 'repairs') {
+      setActiveTab(initialSubTab);
+    }
+  }, [initialSubTab]);
 
   // Repair Statistics Breakdown
   const departmentStats = useMemo(() => {

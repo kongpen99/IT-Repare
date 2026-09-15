@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Wrench,
@@ -57,18 +57,38 @@ export const RepairDetailModal: React.FC<RepairDetailModalProps> = ({
   onAddAttachment,
   onOpenPrint
 }) => {
-  if (!repair) return null;
+  const repairParts = repair?.parts || (repair as any)?.partsUsed || [];
+  const currentPartsCost = repairParts.reduce(
+    (acc: number, p: any) => acc + (p.total ?? (p.quantity * (p.price ?? p.unitPrice ?? 0))),
+    0
+  );
 
   const [activeTab, setActiveTab] = useState<'info' | 'parts' | 'timeline' | 'photos'>('info');
   const [statusNote, setStatusNote] = useState('');
-  const [selectedNewStatus, setSelectedNewStatus] = useState<RepairStatus>(repair.status);
-  const [solutionText, setSolutionText] = useState(repair.solution || '');
-  const [diagnosisText, setDiagnosisText] = useState(repair.diagnosisNote || '');
-  const [laborCost, setLaborCost] = useState<number>(repair.laborCost || 0);
+  const [selectedNewStatus, setSelectedNewStatus] = useState<RepairStatus>(repair?.status || 'WAITING');
+  const [solutionText, setSolutionText] = useState(repair?.solution || '');
+  const [diagnosisText, setDiagnosisText] = useState(repair?.cause || (repair as any)?.diagnosisNote || '');
+  const [laborCost, setLaborCost] = useState<number>(() => Math.max(0, (repair?.cost || 0) - currentPartsCost));
   const [selectedPartId, setSelectedPartId] = useState(allParts[0]?.id || '');
   const [partQty, setPartQty] = useState(1);
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [isSavingResolution, setIsSavingResolution] = useState(false);
+
+  // Sync state when repair changes
+  useEffect(() => {
+    if (repair) {
+      setSelectedNewStatus(repair.status);
+      setSolutionText(repair.solution || '');
+      setDiagnosisText(repair.cause || (repair as any).diagnosisNote || '');
+      const pCost = (repair.parts || (repair as any).partsUsed || []).reduce(
+        (acc: number, p: any) => acc + (p.total ?? (p.quantity * (p.price ?? p.unitPrice ?? 0))),
+        0
+      );
+      setLaborCost(Math.max(0, (repair.cost || 0) - pCost));
+    }
+  }, [repair?.id]);
+
+  if (!repair) return null;
 
   const statuses: RepairStatus[] = [
     'WAITING',
@@ -88,7 +108,10 @@ export const RepairDetailModal: React.FC<RepairDetailModalProps> = ({
 
   const handleSaveResolution = () => {
     setIsSavingResolution(true);
-    const partsCost = (repair.partsUsed || []).reduce((acc, p) => acc + p.quantity * p.unitPrice, 0);
+    const partsCost = repairParts.reduce(
+      (acc: number, p: any) => acc + (p.total ?? (p.quantity * (p.price ?? p.unitPrice ?? 0))),
+      0
+    );
     const totalCost = partsCost + Number(laborCost || 0);
 
     onUpdateResolution(repair.id, solutionText, diagnosisText, totalCost);
@@ -115,7 +138,7 @@ export const RepairDetailModal: React.FC<RepairDetailModalProps> = ({
     'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=600&auto=format&fit=crop&q=80'
   ];
 
-  const totalPartsCost = (repair.partsUsed || []).reduce((acc, p) => acc + p.quantity * p.unitPrice, 0);
+  const totalPartsCost = currentPartsCost;
 
   return (
     <AnimatePresence>
@@ -433,35 +456,42 @@ export const RepairDetailModal: React.FC<RepairDetailModalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {(!repair.partsUsed || repair.partsUsed.length === 0) ? (
+                      {repairParts.length === 0 ? (
                         <tr>
                           <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
                             ยังไม่มีการเบิกใช้อะไหล่ในงานซ่อมนี้
                           </td>
                         </tr>
                       ) : (
-                        repair.partsUsed.map((p) => (
-                          <tr key={p.id} className="hover:bg-slate-50/60">
-                            <td className="px-4 py-3 font-medium text-slate-800">{p.partName}</td>
-                            <td className="px-4 py-3 text-center font-bold text-slate-900">{p.quantity}</td>
-                            <td className="px-4 py-3 text-right">{p.unitPrice.toLocaleString()} บ.</td>
-                            <td className="px-4 py-3 text-right font-bold text-blue-600">
-                              {(p.quantity * p.unitPrice).toLocaleString()} บ.
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <button
-                                onClick={() => onRemovePart(repair.id, p.id)}
-                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                                title="คืนสต็อกและลบรายการ"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))
+                        repairParts.map((p: any) => {
+                          const unitPrice = Number(p.price ?? p.unitPrice ?? 0);
+                          const total = Number(p.total ?? (p.quantity * unitPrice));
+                          return (
+                            <tr key={p.id} className="hover:bg-slate-50/60">
+                              <td className="px-4 py-3 font-medium text-slate-800">
+                                {p.partName}
+                                {p.partCode && <span className="ml-2 font-mono text-slate-400 text-[11px]">({p.partCode})</span>}
+                              </td>
+                              <td className="px-4 py-3 text-center font-bold text-slate-900">{p.quantity}</td>
+                              <td className="px-4 py-3 text-right">{unitPrice.toLocaleString()} บ.</td>
+                              <td className="px-4 py-3 text-right font-bold text-blue-600">
+                                {total.toLocaleString()} บ.
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <button
+                                  onClick={() => onRemovePart(repair.id, p.id)}
+                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                  title="คืนสต็อกและลบรายการ"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
-                    {repair.partsUsed && repair.partsUsed.length > 0 && (
+                    {repairParts.length > 0 && (
                       <tfoot className="bg-slate-50 font-bold border-t border-slate-200">
                         <tr>
                           <td colSpan={3} className="px-4 py-3 text-right text-slate-700">

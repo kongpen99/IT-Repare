@@ -27,7 +27,7 @@ export const RepairFormModal: React.FC<RepairFormModalProps> = ({
   const [departmentId, setDepartmentId] = useState('');
   const [requesterPhone, setRequesterPhone] = useState('1102');
   const [requesterLocation, setRequesterLocation] = useState('');
-  const [problemType, setProblemType] = useState<ProblemType>('HARDWARE');
+  const [problemType, setProblemType] = useState<ProblemType>('Hardware');
   const [problemDescription, setProblemDescription] = useState('');
   const [priority, setPriority] = useState<Priority>('MEDIUM');
   const [technicianId, setTechnicianId] = useState('');
@@ -247,13 +247,13 @@ export const RepairFormModal: React.FC<RepairFormModalProps> = ({
                     onChange={(e) => setProblemType(e.target.value as ProblemType)}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium"
                   >
-                    <option value="HARDWARE">ฮาร์ดแวร์ (Hardware - จอ, พัดลม, PSU, SSD)</option>
-                    <option value="SOFTWARE">ซอฟต์แวร์ (Software - โปรแกรมค้าง, Error)</option>
-                    <option value="NETWORK">เครือข่าย (Network - ต่อเน็ตไม่ได้, LAN หลุด)</option>
-                    <option value="WINDOWS">ระบบปฏิบัติการ (Windows - บูตไม่ติด, จอฟ้า)</option>
-                    <option value="PRINTER">เครื่องพิมพ์ (Printer - ปริ้นไม่ออก, ไม่เจอไดรเวอร์)</option>
-                    <option value="VIRUS">ไวรัส/มัลแวร์ (Virus / Security Threat)</option>
-                    <option value="OTHER">อื่นๆ (Other Problems)</option>
+                    <option value="Hardware">ฮาร์ดแวร์ (Hardware - จอ, พัดลม, PSU, SSD)</option>
+                    <option value="Software">ซอฟต์แวร์ (Software - โปรแกรมค้าง, Error)</option>
+                    <option value="Network">เครือข่าย (Network - ต่อเน็ตไม่ได้, LAN หลุด)</option>
+                    <option value="Windows">ระบบปฏิบัติการ (Windows - บูตไม่ติด, จอฟ้า)</option>
+                    <option value="Printer">เครื่องพิมพ์ (Printer - ปริ้นไม่ออก, ไม่เจอไดรเวอร์)</option>
+                    <option value="Virus / Malware">ไวรัส/มัลแวร์ (Virus / Security Threat)</option>
+                    <option value="Other">อื่นๆ (Other Problems)</option>
                   </select>
                 </div>
 

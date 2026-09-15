@@ -19,12 +19,14 @@ export const DepartmentsManagement: React.FC<DepartmentsManagementProps> = ({
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleOpenAdd = () => {
     setEditingDept(null);
     setName('');
     setCode('');
     setDescription('');
+    setErrorMsg('');
     setIsModalOpen(true);
   };
 
@@ -33,12 +35,24 @@ export const DepartmentsManagement: React.FC<DepartmentsManagementProps> = ({
     setName(d.name);
     setCode(d.code);
     setDescription(d.description || '');
+    setErrorMsg('');
     setIsModalOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !code.trim()) return;
+    if (!name.trim() || !code.trim()) {
+      setErrorMsg('กรุณากรอกรหัสและชื่อแผนกให้ครบถ้วน');
+      return;
+    }
+
+    const dup = departments.find(
+      (d) => d.code.toUpperCase() === code.trim().toUpperCase() && d.id !== editingDept?.id
+    );
+    if (dup) {
+      setErrorMsg(`รหัสแผนก "${code.trim().toUpperCase()}" ถูกใช้งานแล้ว กรุณาใช้รหัสอื่น`);
+      return;
+    }
 
     onSaveDepartment({
       ...(editingDept ? { id: editingDept.id } : {}),
@@ -138,6 +152,11 @@ export const DepartmentsManagement: React.FC<DepartmentsManagementProps> = ({
               </div>
 
               <form onSubmit={handleSubmit} className="mt-4 space-y-3 text-xs text-slate-800">
+                {errorMsg && (
+                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
                 <div>
                   <label className="block font-semibold mb-1">รหัสแผนก (Department Code)</label>
                   <input

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Package,
   Search,
@@ -40,6 +40,11 @@ export const PartsListView: React.FC<PartsListViewProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
+  useEffect(() => {
+    setOnlyLowStock(initialFilterLowStock);
+    setCurrentPage(1);
+  }, [initialFilterLowStock]);
+
   const categories = useMemo(() => {
     const set = new Set(parts.map((p) => p.category));
     return Array.from(set);
@@ -61,6 +66,13 @@ export const PartsListView: React.FC<PartsListViewProps> = ({
   }, [parts, searchTerm, selectedCategory, onlyLowStock]);
 
   const totalPages = Math.ceil(filteredParts.length / itemsPerPage) || 1;
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
   const paginatedParts = filteredParts.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -228,6 +240,19 @@ export const PartsListView: React.FC<PartsListViewProps> = ({
         <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
           <div>
             พบข้อมูลทั้งหมด <span className="font-semibold text-slate-900">{filteredParts.length}</span> รายการ
+            {(searchTerm || selectedCategory !== 'ALL' || onlyLowStock) && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedCategory('ALL');
+                  setOnlyLowStock(false);
+                  setCurrentPage(1);
+                }}
+                className="ml-3 text-blue-600 hover:underline"
+              >
+                ล้างตัวกรองทั้งหมด
+              </button>
+            )}
           </div>
           <div>หน้า {currentPage} จาก {totalPages}</div>
         </div>
